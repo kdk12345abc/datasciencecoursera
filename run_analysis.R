@@ -1,0 +1,31 @@
+if(!file.exists("./data")) dir.create("./data")
+fileUrl <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+download.file(fileUrl, destfile = "./data/assignment.zip")
+assignment<-unzip("./data/assignment.zip",exdir="./data")
+xtrain<-read.table("./data/UCI HAR Dataset/train/X_train.txt")
+ytrain<-read.table("./data/UCI HAR Dataset/train/y_train.txt")
+subjecttrain<-read.table("./data/UCI HAR Dataset/train/subject_train.txt")
+xtest<-read.table("./data/UCI HAR Dataset/test/X_test.txt")
+ytest<-read.table("./data/UCI HAR Dataset/test/y_test.txt")
+subjecttest<-read.table("./data/UCI HAR Dataset/test/subject_test.txt")
+testset<-cbind(subjecttest,ytest,xtest)
+trainset<-cbind(subjecttrain,ytrain,xtrain)
+wholeset<-rbind(trainset,testset)
+feature<-read.table("./data/UCI HAR Dataset/features.txt",stringsAsFactors = FALSE)
+feature2<-feature[,2]
+meansd<-grep(("mean\\(\\)|std\\(\\)"),feature2)
+meansdset<-wholeset[,c(1,2,meansd+2)]
+activity<-read.table( "./data/UCI HAR Dataset/activity_labels.txt" )
+colnames(meansdset)<-c("sub","act",feature2[meansd])
+meansdset$act<-factor(meansdset$act,levels = activity$V1,labels = activity$V2)
+data<-meansdset
+library(dplyr)
+names(data)<-gsub("-std","Standard_deviation",names(data))
+names(data)<-gsub("-mean","Mean",names(data))
+names(data)<-gsub("^f","Frequency",names(data))
+names(data)<-gsub("^t","Time",names(data))
+names(data)<-gsub("\\()","",names(data))
+group<-group_by(data,sub,act)
+final<-summarize_each(group,funs(mean))
+final
+write.table(final,"./data/final.txt",row.names = FALSE)
